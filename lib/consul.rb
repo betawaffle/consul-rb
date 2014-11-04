@@ -1,11 +1,8 @@
 require 'consul/version'
+require 'consul/errors'
 
 module Consul
   # Your code goes here...
-
-  Error = Class.new(StandardError)
 end
 
 require 'consul/api'
-require 'consul/session'
-require 'consul/kv'
