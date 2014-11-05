@@ -1,6 +1,6 @@
 module Consul
   module APIv1
-    class Catalog < Category
+    class Catalog < EndpointCategory
       define_endpoint :put, 'register'
       define_endpoint :put, 'deregister'
       define_endpoint :get, 'datacenters'
@@ -11,7 +11,5 @@ module Consul
       define_endpoint :get, 'service/:service', params: %w[tag], supports: %w[blocking consistency_modes dc]
       define_endpoint :get, 'node/:node', supports: %w[blocking consistency_modes dc]
     end
-
-    CATEGORIES[:catalog] = Catalog
   end
 end

@@ -1,6 +1,6 @@
 module Consul
   module APIv1
-    class KV < Category
+    class KV < EndpointCategory
       define_endpoint :get, ':key', params: %w[keys raw recurse separator], supports: %w[blocking consistency_modes dc token]
       define_endpoint :put, ':key', params: %w[acquire cas flags release], supports: %w[dc token]
       define_endpoint :delete, ':key', params: %w[recurse], supports: %w[dc token]
@@ -51,7 +51,5 @@ module Consul
         put(key, options)
       end
     end
-
-    CATEGORIES[:kv] = KV
   end
 end

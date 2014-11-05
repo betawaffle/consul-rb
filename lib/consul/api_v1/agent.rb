@@ -1,6 +1,6 @@
 module Consul
   module APIv1
-    class Agent < Category
+    class Agent < EndpointCategory
       define_endpoint :get, 'checks'
       define_endpoint :get, 'services'
       define_endpoint :get, 'members', params: %w[wan]
@@ -15,7 +15,5 @@ module Consul
       define_endpoint :put, 'service/register'
       define_endpoint :get, 'service/deregister/:service_id' # get?
     end
-
-    CATEGORIES[:agent] = Agent
   end
 end
