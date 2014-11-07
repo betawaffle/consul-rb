@@ -3,7 +3,7 @@ require 'base64'
 module Consul
   class KV
     class << self
-      def create(api, key, options = {})
+      def create(api, key, options = nil)
         res = api.kv.create(key, options).run
         return unless res.success? && res.response_body == 'true'
 
@@ -28,14 +28,18 @@ module Consul
       @dir = key[-1] == '/'
     end
 
-    def delete(options = {})
-      options[:dc] = @dc
+    def delete(options = nil)
+      options = Options.new(options) do |o|
+        o.dc = @dc
+      end
 
       @api.kv.delete(@key, options).run.success?
     end
 
-    def get(options = {})
-      options[:dc] = @dc
+    def get(options = nil)
+      options = Options.new(options) do |o|
+        o.dc = @dc
+      end
 
       req = @api.kv.get(@key, options)
       req.on_success do |res|
@@ -57,14 +61,16 @@ module Consul
       value
     end
 
-    def get_value(options = {})
-      options[:dc] = @dc
+    def get_value(options = nil)
+      options = Options.new(options) do |o|
+        o.dc = @dc
+      end
 
       res = @api.kv.get_value(@key, options).run
       res.body if res.success?
     end
 
-    def try_update(value, options = {})
+    def try_update(value, options = nil)
       unless String === value
         raise ArgumentError, "value must be a String, got #{value.class}"
       end
@@ -73,9 +79,11 @@ module Consul
         raise SafetyViolation, "current value of #{@key} should be read before attempting an update"
       end
 
-      options[:dc]   = @dc
-      options[:cas]  = index
-      options[:body] = value.freeze
+      options = Options.new(options) do |o|
+        o.dc = @dc
+        o.cas = index
+        o.body = value.freeze
+      end
 
       result = nil
 
@@ -89,16 +97,22 @@ module Consul
       result
     end
 
-    def update(options = {})
+    def update(options = nil)
       unless block_given?
         raise ArgumentError, 'must be called with a block'
       end
 
-      retries = options.delete(:retries) || 0
+      retries = nil
+      options = Options.new(options) do |o|
+        retries = o.retries || 0
+        o.retries = nil
+      end
+
       begin
         get
         new_value = yield value
-        try_update(new_value, options.dup) and return true
+        try_update(new_value, options) and return true
+        retries -= 1
       end while retries > 0
     end
 

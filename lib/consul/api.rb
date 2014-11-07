@@ -23,11 +23,11 @@ module Consul
       KV.new(self, key)
     end
 
-    def create_kv(key, options = {})
+    def create_kv(key, options = nil)
       KV.create(self, key, options)
     end
 
-    def create_session(options = {})
+    def create_session(options = nil)
       Session.create(self, options)
     end
   end

@@ -5,48 +5,65 @@ module Consul
       define_endpoint :put, ':key', params: %w[acquire cas flags release], supports: %w[dc token]
       define_endpoint :delete, ':key', params: %w[recurse], supports: %w[dc token]
 
-      def acquire(key, session, options = {})
-        options[:acquire] = session
+      def acquire(key, session, options = nil)
+        options = Options.new(options) do |o|
+          o.acquire = session
+        end
 
         put(key, options)
       end
 
-      def create(key, options = {})
-        options[:cas] = 0
+      def create(key, options = nil)
+        options = Options.new(options) do |o|
+          o.cas = 0
+        end
 
         put(key, options)
       end
 
-      def delete_all(options = {})
-        options[:recurse] = true
-        prefix = options.delete(:prefix)
+      def delete_all(options = nil)
+        prefix  = nil
+        options = Options.new(options) do |o|
+          o.recurse = true
+          prefix = o.delete(:prefix)
+        end
 
         delete(prefix, options)
       end
 
-      def get_all_keys(options = {})
-        options[:keys] = true
-        prefix = options.delete(:prefix)
+      def get_all_keys(options = nil)
+        prefix  = nil
+        options = Options.new(options) do |o|
+          o.keys = true
+          prefix = o.delete(:prefix)
+        end
 
         get(prefix, options)
       end
 
-      def get_keys(options = {})
-        options[:keys] = true
-        options[:separator] = '/'
-        prefix = options.delete(:prefix)
+      def get_keys(options = nil)
+        prefix  = nil
+        options = Options.new(options) do |o|
+          o.keys = true
+          o.separator = '/'
+          prefix = o.delete(:prefix)
+        end
 
         get(prefix, options)
       end
 
-      def get_value(key, options = {})
-        options[:raw] = true
+      def get_value(key, options = nil)
+        options = Options.new(options) do |o|
+          o.raw = true
+        end
 
         get(key, options)
       end
 
-      def release(key, session, options = {})
-        options[:release] = session
+      def release(key, session, options = nil)
+        options = Options.new(options) do |o|
+          o.release = session
+        end
 
         put(key, options)
       end

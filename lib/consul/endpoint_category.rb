@@ -25,21 +25,38 @@ module Consul
         parts, args = split_path(path)
         name = options[:as] || guess_name(method, path, parts, args)
 
-        optional_params = options[:params] || []
-        optional_params.map! { |k| k.to_sym }
+        allowed_params = []
 
-        features = options[:supports] || []
-        features.map! { |k| k.to_sym }
+        if params = options[:params]
+          params.each { |param| allowed_params << param.to_sym }
+        end
 
-        args << 'options = {}'
+        if features = options[:supports]
+          features.each do |feature|
+            case feature = feature.to_sym
+            when :blocking
+              allowed_params.push :index, :wait
+            when :consistency_modes
+              allowed_params.push :consistent, :stale
+            when :dc, :token
+              allowed_params.push feature
+            else
+              raise ArgumentError, "#{feature} is not a known feature"
+            end
+          end
+        end
+
+        args << 'options = nil'
         path = parts.join('/')
         file = __FILE__
         line = __LINE__ + 2
         code = <<-rb
           def #{name}(#{args.join(', ')})
-            extract_params(options, #{optional_params.inspect})
-            extract_feature_params(options, #{features.inspect})
-            new_request(:#{method}, "#{base_path}/#{path}", options)
+            options = Options.new(options) do |o|
+              o.method = :#{method}
+              o.restrict_params! #{allowed_params.inspect}
+            end
+            new_request "#{base_path}/#{path}", options
           end
         rb
 
@@ -102,56 +119,6 @@ module Consul
 
     private
 
-    def extract_params(options, optional_params)
-      params = options[:params] || {}
-      optional_params.each do |key|
-        if val = options.delete(key)
-          params[key] = val
-        end
-      end
-
-      options[:params] = params
-    end
-
-    def extract_feature_params(options, features)
-      params = options[:params] || {}
-      features.each do |feature|
-        case feature
-        when :blocking
-          index = options.delete(:index)
-          wait  = options.delete(:wait)
-
-          # wait has no meaning without index
-          if index
-            params[:index] = index
-            params[:wait] = wait if wait
-          end
-        when :consistency_modes
-          case mode = options.delete(:consistency_mode)
-          when nil, :default, 'default'
-          when :consistent, 'consistent'
-            params[:consistent] = true
-          when :stale, 'stale'
-            params[:stale] = true
-          else
-            raise ArgumentError, "#{mode} is not a valid consistency mode"
-          end
-        when :dc
-          if value = options.delete(:dc)
-            params[:dc] = value
-          end
-        when :token
-          if value = options.delete(:token) { @token }
-            params[:token] = value
-          end
-        else
-          raise ArgumentError, "#{feature} is not a known feature"
-        end
-      end # features.each
-
-      options[:params] = params
-    end # extract_feature_params
-
     def handle_response(res)
       case res.headers['Content-Type']
       when MIME_JSON
@@ -159,13 +126,10 @@ module Consul
       end
     end
 
-    def new_request(method, path, options)
-      options[:method] = method
-      raise_error = options.delete(:raise_error)
-
-      req = ::Typhoeus::Request.new("#{@base_url}#{path}", options)
+    def new_request(path, options)
+      req = ::Typhoeus::Request.new("#{@base_url}#{path}", options.to_hash)
       req.on_complete { |res| handle_response(res) }
-      req.on_failure { |res| raise APIError.new(res) } unless raise_error == false
+      req.on_failure { |res| raise APIError.new(res) } unless options.raise_error == false
       req
     end
   end # EndpointCategory

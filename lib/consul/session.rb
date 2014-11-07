@@ -8,15 +8,14 @@ module Consul
     }
 
     class << self
-      def create(api, options = {})
-        options[:body] = json_for_create(options)
+      def create(api, options = nil)
+        options = Options.new(options) do |o|
+          o.body = json_for_create(o)
+        end
 
         req = api.session.create(options)
         req.on_success do |res|
-          if params = options[:params]
-            dc = params[:dc]
-          end
-          new api, res.handled_response['ID'], dc
+          new api, res.handled_response['ID'], options.dc
         end
 
         req.run.handled_response
@@ -47,16 +46,20 @@ module Consul
       get_info
     end
 
-    def destroy(options = {})
+    def destroy(options = nil)
       return if @dead # don't waste time and bandwidth if we already know
-      options[:dc] = @dc
+      options = Options.new(options) do |o|
+        o.dc = @dc
+      end
 
       @api.session.destroy(@id, options).run.success?
     end
 
-    def get_info(options = {})
+    def get_info(options = nil)
       return if @dead
-      options[:dc] = @dc
+      options = Options.new(options) do |o|
+        o.dc = @dc
+      end
 
       req = @api.session.info(@id, options)
       req.on_success do |res|
