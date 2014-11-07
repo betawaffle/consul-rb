@@ -96,6 +96,10 @@ module Consul
       @token = options[:token]
     end
 
+    def inspect
+      %[#<#{self.class} #{@base_url}>]
+    end
+
     private
 
     def extract_params(options, optional_params)
@@ -151,17 +155,17 @@ module Consul
     def handle_response(res)
       case res.headers['Content-Type']
       when MIME_JSON
-        JSON.parse(res.body) rescue res
-      else
-        res
+        JSON.parse(res.body) rescue nil
       end
     end
 
     def new_request(method, path, options)
       options[:method] = method
+      raise_error = options.delete(:raise_error)
 
       req = ::Typhoeus::Request.new("#{@base_url}#{path}", options)
       req.on_complete { |res| handle_response(res) }
+      req.on_failure { |res| raise APIError.new(res) } unless raise_error == false
       req
     end
   end # EndpointCategory

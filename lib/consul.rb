@@ -7,3 +7,5 @@ end
 
 require 'consul/endpoint_category'
 require 'consul/api'
+require 'consul/kv'
+require 'consul/session'
