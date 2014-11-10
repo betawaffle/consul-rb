@@ -127,6 +127,10 @@ module Consul
     end
 
     def new_request(path, options)
+      options = Options.new(options) do |o|
+        o.token = @token unless o.token?
+      end
+
       req = ::Typhoeus::Request.new("#{@base_url}#{path}", options.to_hash)
       req.on_complete { |res| handle_response(res) }
       req.on_failure { |res| raise APIError.new(res) } unless options.raise_error == false

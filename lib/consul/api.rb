@@ -15,10 +15,6 @@ module Consul
       end
     end
 
-    def inspect
-      %[#<#{self.class} #{@base_url}>]
-    end
-
     def [](key)
       KV.new(self, key)
     end
@@ -29,6 +25,10 @@ module Consul
 
     def create_session(options = nil)
       Session.create(self, options)
+    end
+
+    def inspect
+      %[#<#{self.class} #{@base_url}>]
     end
   end
 end

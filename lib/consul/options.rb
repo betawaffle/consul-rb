@@ -197,6 +197,10 @@ module Consul
       params[:token] = token
     end
 
+    def token?
+      has_param? :token
+    end
+
     def wait=(timeout)
       case timeout
       when String, nil
@@ -219,6 +223,7 @@ module Consul
 
     def extract_params!
       params = self[:params] || {}
+      params = params.dup if params.frozen?
 
       KNOWN_PARAMS.each do |param|
         if val = delete(param)

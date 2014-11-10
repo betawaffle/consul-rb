@@ -21,6 +21,22 @@ module Consul
         req.run.handled_response
       end
 
+      def list(api, options = nil)
+        options = Options.new(options) { |o| }
+
+        req = api.session.get_list(options)
+        req.on_success do |res|
+          case arr = res.handled_response
+          when Array
+            arr.map { |info| new api, info, options.dc }
+          else
+            next # nil
+          end
+        end
+
+        req.run.handled_response
+      end
+
       private
 
       def json_for_create(options)
@@ -35,15 +51,23 @@ module Consul
       end
     end
 
-    attr_reader :id, :name, :node, :checks, :lock_delay
-    attr_reader :create_index
+    attr_reader :id, :create_index
+    attr_reader *JSON_MAPPING.keys
 
-    def initialize(api, id, dc = nil)
+    def initialize(api, id_or_info, dc = nil)
       @api = api
-      @id  = id.freeze
       @dc  = dc.freeze
 
-      get_info
+      case id_or_info
+      when String
+        @id = id_or_info.freeze
+        get_info
+      when Hash
+        @id = id_or_info['ID'].freeze
+        update_info(id_or_info)
+      else
+        raise ArgumentError, "expected id or info hash, got #{id_or_info.class}"
+      end
     end
 
     def destroy(options = nil)

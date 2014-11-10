@@ -23,9 +23,13 @@ module Consul
 
     def initialize(api, key, dc = nil)
       @api = api
-      @key = key.freeze
       @dc  = dc.freeze
-      @dir = key[-1] == '/'
+      @key = key.to_s.freeze
+      @dir = @key == '' || @key[-1] == '/'
+    end
+
+    def [](key)
+      KV.new(@api, @dir ? "#{@key}#{key}" : "#{@key}/#{key}", @dc)
     end
 
     def delete(options = nil)
@@ -34,6 +38,10 @@ module Consul
       end
 
       @api.kv.delete(@key, options).run.success?
+    end
+
+    def directory?
+      @dir
     end
 
     def get(options = nil)
@@ -68,6 +76,10 @@ module Consul
 
       res = @api.kv.get_value(@key, options).run
       res.body if res.success?
+    end
+
+    def keys
+      @api.kv.get_keys(prefix: @dir ? "#{@key}" : "#{@key}/").run.handled_response
     end
 
     def try_update(value, options = nil)
