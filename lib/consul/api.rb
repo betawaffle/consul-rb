@@ -27,6 +27,10 @@ module Consul
       Session.create(self, options)
     end
 
+    def fire_event(name, options = nil)
+      Event.fire(self, name, options)
+    end
+
     def inspect
       %[#<#{self.class} #{@base_url}>]
     end
