@@ -6,23 +6,17 @@ module Consul
       define_endpoint :delete, ':key', params: %w[recurse], supports: %w[dc token]
 
       def acquire(key, session, options = nil)
-        options = Options.new(options) do |o|
-          o.acquire = session
-        end
-
+        options = Options.new(options) { |o| o.acquire = session }
         put(key, options)
       end
 
       def create(key, options = nil)
-        options = Options.new(options) do |o|
-          o.cas = 0
-        end
-
+        options = Options.new(options) { |o| o.cas = 0 }
         put(key, options)
       end
 
       def delete_all(options = nil)
-        prefix  = nil
+        prefix = nil
         options = Options.new(options) do |o|
           o.recurse = true
           prefix = o.delete(:prefix)
@@ -32,7 +26,7 @@ module Consul
       end
 
       def get_all_keys(options = nil)
-        prefix  = nil
+        prefix = nil
         options = Options.new(options) do |o|
           o.keys = true
           prefix = o.delete(:prefix)
@@ -42,7 +36,7 @@ module Consul
       end
 
       def get_keys(options = nil)
-        prefix  = nil
+        prefix = nil
         options = Options.new(options) do |o|
           o.keys = true
           o.separator = '/'
@@ -53,18 +47,12 @@ module Consul
       end
 
       def get_value(key, options = nil)
-        options = Options.new(options) do |o|
-          o.raw = true
-        end
-
+        options = Options.new(options) { |o| o.raw = true }
         get(key, options)
       end
 
       def release(key, session, options = nil)
-        options = Options.new(options) do |o|
-          o.release = session
-        end
-
+        options = Options.new(options) { |o| o.release = session }
         put(key, options)
       end
     end

@@ -119,22 +119,12 @@ module Consul
 
     private
 
-    def handle_response(res)
-      case res.headers['Content-Type']
-      when MIME_JSON
-        JSON.parse(res.body) rescue nil
-      end
-    end
-
     def new_request(path, options)
       options = Options.new(options) do |o|
         o.token = @token unless o.token?
       end
 
-      req = ::Typhoeus::Request.new("#{@base_url}#{path}", options.to_hash)
-      req.on_complete { |res| handle_response(res) }
-      req.on_failure { |res| raise APIError.new(res) } unless options.raise_error == false
-      req
+      Request.new("#{@base_url}#{path}", options)
     end
   end # EndpointCategory
 end

@@ -2,7 +2,9 @@ require 'consul/api_v1'
 
 module Consul
   DEFAULT_BASE_URL = ENV.fetch('CONSUL_URL', 'http://127.0.0.1:8500').freeze
+
   MIME_JSON = 'application/json'.freeze
+  MIME_TEXT = %r[^text/plain].freeze
 
   class API
     attr_reader *APIv1::CATEGORIES.keys

@@ -22,15 +22,23 @@ module Consul
       end
 
       def list(api, options = nil)
-        options = Options.new(options) { |o| }
+        node = nil
+        options = Options.new(options) do |o|
+          node = o.delete(:node)
+        end
 
-        req = api.session.get_list(options)
+        if node
+          req = api.session.list_for_node(node, options)
+        else
+          req = api.session.list(options)
+        end
+
         req.on_success do |res|
           case arr = res.handled_response
           when Array
             arr.map { |info| new api, info, options.dc }
-          else
-            next # nil
+          when nil
+            []
           end
         end
 
@@ -97,15 +105,13 @@ module Consul
             @dead = true
             update_info({}) # this is just so easy
           end
-        when res
-          next # nil
-        end
 
-        arr
+          arr.first
+        end
       end
 
       res = req.run
-      res.handled_response unless @dead
+      res.handled_response
     end
 
     def inspect
@@ -120,15 +126,15 @@ module Consul
 
     private
 
-    def update_info(hash)
-      unless @dead || hash['ID'] == @id
-        raise "session id mismatch, #{hash['ID'].inspect} != #{@id.inspect}"
+    def update_info(info)
+      unless @dead || info['ID'] == @id
+        raise "session id mismatch, #{info['ID'].inspect} != #{@id.inspect}"
       end
 
-      @create_index = hash['CreateIndex']
+      @create_index = info['CreateIndex']
 
       JSON_MAPPING.each_pair do |var, field|
-        instance_variable_set(:"@#{var}", hash[field].freeze)
+        instance_variable_set(:"@#{var}", info[field].freeze)
       end
     end
   end # Session

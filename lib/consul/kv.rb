@@ -5,7 +5,7 @@ module Consul
     class << self
       def create(api, key, options = nil)
         res = api.kv.create(key, options).run
-        return unless res.success? && res.response_body == 'true'
+        return unless res.success? && res.handled_response == true
 
         if params = res.options[:params]
           dc = params[:dc]
@@ -33,9 +33,7 @@ module Consul
     end
 
     def delete(options = nil)
-      options = Options.new(options) do |o|
-        o.dc = @dc
-      end
+      options = Options.new(options) { |o| o.dc = @dc }
 
       @api.kv.delete(@key, options).run.success?
     end
@@ -45,9 +43,7 @@ module Consul
     end
 
     def get(options = nil)
-      options = Options.new(options) do |o|
-        o.dc = @dc
-      end
+      options = Options.new(options) { |o| o.dc = @dc }
 
       req = @api.kv.get(@key, options)
       req.on_success do |res|
@@ -58,28 +54,29 @@ module Consul
           else
             # TODO: This means they passed options we didn't really want them to, I think.
           end
-        when nil
-          next # nil
         end
 
         arr
       end
 
       req.run
-      value
+      self
     end
 
     def get_value(options = nil)
-      options = Options.new(options) do |o|
-        o.dc = @dc
-      end
+      options = Options.new(options) { |o| o.dc = @dc }
 
       res = @api.kv.get_value(@key, options).run
       res.body if res.success?
     end
 
-    def keys
-      @api.kv.get_keys(prefix: @dir ? "#{@key}" : "#{@key}/").run.handled_response
+    def keys(options = nil)
+      options = Options.new(options) do |o|
+        o.dc = @dc
+        o[:prefix] = @dir ? @key : @key + '/'
+      end
+
+      @api.kv.get_keys(options).run.handled_response
     end
 
     def try_update(value, options = nil)
@@ -126,13 +123,15 @@ module Consul
         try_update(new_value, options) and return true
         retries -= 1
       end while retries > 0
+
+      false
     end
 
     def update_from_put_response(res)
-      return unless res.response_body == 'true'
+      return unless res.handled_response == true
 
       options = res.options
-      index   = res.headers['X-Consul-Index']
+      index   = res.index
 
       @update_index   = index
       @create_index ||= index
@@ -158,25 +157,25 @@ module Consul
 
     private
 
-    def update_info(hash)
-      unless hash['Key'] == @key
-        raise "key mismatch, #{hash['Key'].inspect} != #{@key.inspect}"
+    def update_info(info)
+      unless info['Key'] == @key
+        raise "key mismatch, #{info['Key'].inspect} != #{@key.inspect}"
       end
 
-      @create_index = hash['CreateIndex']
-      @update_index = hash['UpdateIndex']
+      @create_index = info['CreateIndex']
+      @update_index = info['UpdateIndex']
 
-      @lock_index = hash['LockIndex']
+      @lock_index = info['LockIndex']
 
-      if session = hash['Session']
+      if session = info['Session']
         @session = Session.new(@api, session, @dc)
       else
         @session = nil
       end
 
-      @flags = hash['Flags']
+      @flags = info['Flags']
 
-      if value = hash['Value']
+      if value = info['Value']
         @value = Base64.decode64(value).freeze
       else
         @value = nil

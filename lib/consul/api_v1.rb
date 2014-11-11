@@ -1,11 +1,8 @@
-require 'typhoeus'
-require 'json'
-
 module Consul
   module APIv1
     CATEGORIES = {}
-  end # APIv1
-end # Consul
+  end
+end
 
 require 'consul/api_v1/kv'
 require 'consul/api_v1/agent'

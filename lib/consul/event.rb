@@ -18,13 +18,11 @@ module Consul
       end
 
       def list(api, options = nil)
-        req = api.event.get_list(options)
+        req = api.event.list(options)
         req.on_success do |res|
           case arr = res.handled_response
           when Array
             arr.map { |info| new api, info }
-          else
-            next # nil
           end
         end
 
