@@ -22,7 +22,7 @@ module Consul
     end
 
     def finish(response, bypass_memoization = nil)
-      super Response.new(response), bypass_memoization
+      super Response.new(response.options), bypass_memoization
     end
   end
 end

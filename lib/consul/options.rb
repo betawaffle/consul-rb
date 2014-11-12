@@ -73,6 +73,10 @@ module Consul
       end
     end
 
+    def dc
+      params[:dc] if params?
+    end
+
     def dc=(dc)
       params[:dc] = dc
     end
